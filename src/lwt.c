@@ -11,6 +11,32 @@
 #define LWT_SHELL "/bin/bash"
 #define LWT_OPACITY 1.0
 
+// Theme configuration
+struct Theme {
+	GdkRGBA fg, bg;
+	GdkRGBA colors[16];
+};
+
+// Convert theme from iniparser dictionary
+void load_theme(struct Theme *theme, dictionary *dict)
+{
+	char key[48];
+	char *val = NULL;
+	int i;
+	for (i = 0; i < 16; ++i) {
+		snprintf(key, 48, "color:%d", i);
+		if (val = iniparser_getstring(dict, key, NULL)) {
+			gdk_rgba_parse(theme->colors + i, val);
+		}
+	}
+	if (val = iniparser_getstring(dict, "color:fg", NULL)) {
+		gdk_rgba_parse(&(theme->fg), val);
+	}
+	if (val = iniparser_getstring(dict, "color:bg", NULL)) {
+		gdk_rgba_parse(&(theme->bg), val);
+	}
+}
+
 gboolean on_key_press(GtkWidget *win, GdkEventKey *event, VteTerminal *vte);
 void on_screen_change(GtkWidget *win, GdkScreen *prev, gpointer data);
 void update_visuals(GtkWidget *win);
@@ -19,6 +45,7 @@ void clear_shell(VteTerminal *vte);
 int main(int argc, char **argv) {
 	gtk_init(&argc, &argv);
 
+	struct Theme *theme = NULL;
 	// Parse config file.
 	char conf_path[1024];
 	snprintf(conf_path, sizeof(conf_path), "%s/%s", getenv("HOME"), LWT_CONF);
@@ -26,6 +53,11 @@ int main(int argc, char **argv) {
 	char *font = strdup(iniparser_getstring(dict, "lwt:font", LWT_FONT));
 	char *shell = strdup(iniparser_getstring(dict, "lwt:shell", LWT_SHELL));
 	double opacity = iniparser_getdouble(dict, "lwt:opacity", LWT_OPACITY);
+	if (iniparser_find_entry(dict, "color")) {
+		theme = calloc(1, sizeof(struct Theme));
+		load_theme(theme, dict);
+	}
+
 	iniparser_freedict(dict);
 
 	// Create window with a terminal emulator.
@@ -52,6 +84,12 @@ int main(int argc, char **argv) {
 			gtk_widget_set_opacity(GTK_WIDGET(win), opacity);
 		}
 	}
+	
+	//Set theme.
+	if (theme) {
+		vte_terminal_set_colors(vte, &(theme->fg), &(theme->bg), theme->colors, 16);
+	}
+
 
 	// Fork shell process.
 	argv[0] = shell;
