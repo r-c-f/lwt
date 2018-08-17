@@ -38,7 +38,7 @@ int load_theme(struct Theme *theme, dictionary *dict)
 	}
 	if ((val = iniparser_getstring(dict, "color:bg", NULL))) {
 		gdk_rgba_parse(&(theme->bg), val);
-	} else { 
+	} else {
 		return 1;
 	}
 	return 0;
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
 			gtk_widget_set_opacity(GTK_WIDGET(win), opacity);
 		}
 	}
-	
+
 	//Set theme.
 	if (theme) {
 		vte_terminal_set_colors(vte, &(theme->fg), &(theme->bg), theme->colors, 16);
