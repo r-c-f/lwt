@@ -122,7 +122,7 @@ gboolean on_key_press(GtkWidget *win, GdkEventKey *event, VteTerminal *vte) {
 		// [ctrl] + [shift] + 'c'
 		case GDK_KEY_C:
 		case GDK_KEY_c:
-			vte_terminal_copy_clipboard(vte);
+			vte_terminal_copy_clipboard_format(vte, VTE_FORMAT_TEXT);
 			return TRUE;
 		// [ctrl] + [shift] + 'v'
 		case GDK_KEY_V:
