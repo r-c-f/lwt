@@ -18,7 +18,7 @@ struct Theme {
 };
 
 // Convert theme from iniparser dictionary
-int load_theme(struct Theme *theme, dictionary *dict)
+int ini_load_theme(struct Theme *theme, dictionary *dict)
 {
 	char key[48];
 	char *val = NULL;
@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
 	double opacity = iniparser_getdouble(dict, "lwt:opacity", LWT_OPACITY);
 	if (iniparser_find_entry(dict, "color")) {
 		theme = calloc(1, sizeof(struct Theme));
-		if (load_theme(theme, dict)) {
+		if (ini_load_theme(theme, dict)) {
 			g_printerr("Could not load complete theme; using default colors");
 			free(theme);
 			theme = NULL;
