@@ -12,16 +12,16 @@
 #define LWT_OPACITY 1.0
 
 // Theme configuration
-struct Theme {
+struct theme {
 	GdkRGBA fg, bg;
 	GdkRGBA colors[16];
 };
 
 // Convert theme from iniparser dictionary
-int ini_load_theme(struct Theme *theme, dictionary *dict)
+int ini_load_theme(struct theme *theme, dictionary *dict)
 {
 	char key[48];
-	char *val = NULL;
+	const char *val = NULL;
 	int i;
 	for (i = 0; i < 16; ++i) {
 		snprintf(key, 48, "color:%d", i);
@@ -52,7 +52,7 @@ void clear_shell(VteTerminal *vte);
 int main(int argc, char **argv) {
 	gtk_init(&argc, &argv);
 
-	struct Theme *theme = NULL;
+	struct theme *theme = NULL;
 	// Parse config file.
 	char conf_path[1024];
 	snprintf(conf_path, sizeof(conf_path), "%s/%s", getenv("HOME"), LWT_CONF);
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
 	char *shell = strdup(iniparser_getstring(dict, "lwt:shell", LWT_SHELL));
 	double opacity = iniparser_getdouble(dict, "lwt:opacity", LWT_OPACITY);
 	if (iniparser_find_entry(dict, "color")) {
-		theme = calloc(1, sizeof(struct Theme));
+		theme = calloc(1, sizeof(struct theme));
 		if (ini_load_theme(theme, dict)) {
 			g_printerr("Could not load complete theme; using default colors");
 			free(theme);
