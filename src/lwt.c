@@ -18,23 +18,30 @@ struct Theme {
 };
 
 // Convert theme from iniparser dictionary
-void load_theme(struct Theme *theme, dictionary *dict)
+int load_theme(struct Theme *theme, dictionary *dict)
 {
 	char key[48];
 	char *val = NULL;
 	int i;
 	for (i = 0; i < 16; ++i) {
 		snprintf(key, 48, "color:%d", i);
-		if (val = iniparser_getstring(dict, key, NULL)) {
+		if ((val = iniparser_getstring(dict, key, NULL))) {
 			gdk_rgba_parse(theme->colors + i, val);
+		} else {
+			return 1;
 		}
 	}
-	if (val = iniparser_getstring(dict, "color:fg", NULL)) {
+	if ((val = iniparser_getstring(dict, "color:fg", NULL))) {
 		gdk_rgba_parse(&(theme->fg), val);
+	} else {
+		return 1;
 	}
-	if (val = iniparser_getstring(dict, "color:bg", NULL)) {
+	if ((val = iniparser_getstring(dict, "color:bg", NULL))) {
 		gdk_rgba_parse(&(theme->bg), val);
+	} else { 
+		return 1;
 	}
+	return 0;
 }
 
 gboolean on_key_press(GtkWidget *win, GdkEventKey *event, VteTerminal *vte);
@@ -55,7 +62,11 @@ int main(int argc, char **argv) {
 	double opacity = iniparser_getdouble(dict, "lwt:opacity", LWT_OPACITY);
 	if (iniparser_find_entry(dict, "color")) {
 		theme = calloc(1, sizeof(struct Theme));
-		load_theme(theme, dict);
+		if (load_theme(theme, dict)) {
+			g_printerr("Could not load complete theme; using default colors");
+			free(theme);
+			theme = NULL;
+		}
 	}
 
 	iniparser_freedict(dict);
