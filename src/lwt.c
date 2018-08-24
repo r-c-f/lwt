@@ -53,12 +53,18 @@ int main(int argc, char **argv) {
 	gtk_init(&argc, &argv);
 
 	struct theme *theme = NULL;
+
+	//get default shell
+	char *default_shell = vte_get_user_shell();
+	if (!default_shell)
+		default_shell = LWT_SHELL;
+
 	// Parse config file.
 	char conf_path[1024];
 	snprintf(conf_path, sizeof(conf_path), "%s/%s", getenv("HOME"), LWT_CONF);
 	dictionary *dict = iniparser_load(conf_path);
 	char *font = strdup(iniparser_getstring(dict, "lwt:font", LWT_FONT));
-	char *shell = strdup(iniparser_getstring(dict, "lwt:shell", LWT_SHELL));
+	char *shell = strdup(iniparser_getstring(dict, "lwt:shell", default_shell));
 	double opacity = iniparser_getdouble(dict, "lwt:opacity", LWT_OPACITY);
 	if (iniparser_find_entry(dict, "color")) {
 		theme = calloc(1, sizeof(struct theme));
