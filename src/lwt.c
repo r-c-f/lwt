@@ -17,31 +17,30 @@ struct theme {
 	GdkRGBA colors[16];
 };
 
+// Load single color from iniparser dictionary 
+int ini_load_color(GdkRGBA *dest, dictionary *dict, char *key)
+{
+	const char *val = iniparser_getstring(dict, key, NULL);
+	if (val) {
+		if (gdk_rgba_parse(dest, val)) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
 // Convert theme from iniparser dictionary
 int ini_load_theme(struct theme *theme, dictionary *dict)
 {
 	char key[48];
-	const char *val = NULL;
-	int i;
+	int i, missing = 0;
 	for (i = 0; i < 16; ++i) {
 		snprintf(key, 48, "color:%d", i);
-		if ((val = iniparser_getstring(dict, key, NULL))) {
-			gdk_rgba_parse(theme->colors + i, val);
-		} else {
-			return 1;
-		}
+		missing += ini_load_color(theme->colors + i, dict, key);
 	}
-	if ((val = iniparser_getstring(dict, "color:fg", NULL))) {
-		gdk_rgba_parse(&(theme->fg), val);
-	} else {
-		return 1;
-	}
-	if ((val = iniparser_getstring(dict, "color:bg", NULL))) {
-		gdk_rgba_parse(&(theme->bg), val);
-	} else {
-		return 1;
-	}
-	return 0;
+	missing += ini_load_color(&(theme->fg), dict, "color:fg");
+	missing += ini_load_color(&(theme->bg), dict, "color:bg");
+	return missing;
 }
 
 gboolean on_key_press(GtkWidget *win, GdkEventKey *event, VteTerminal *vte);
