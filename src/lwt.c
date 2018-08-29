@@ -10,6 +10,7 @@
 #define LWT_FONT "Fixed 9"
 #define LWT_SHELL "/bin/bash"
 #define LWT_OPACITY 1.0
+#define LWT_SCROLLBACK 1000000
 
 // Theme configuration
 struct theme {
@@ -65,6 +66,7 @@ int main(int argc, char **argv) {
 	char *font = strdup(iniparser_getstring(dict, "lwt:font", LWT_FONT));
 	char *shell = strdup(iniparser_getstring(dict, "lwt:shell", default_shell));
 	double opacity = iniparser_getdouble(dict, "lwt:opacity", LWT_OPACITY);
+	int scrollback = iniparser_getint(dict, "lwt:scrollback", LWT_SCROLLBACK);
 	if (iniparser_find_entry(dict, "color")) {
 		theme = calloc(1, sizeof(struct theme));
 		if (ini_load_theme(theme, dict)) {
@@ -81,7 +83,7 @@ int main(int argc, char **argv) {
 	VteTerminal *vte = VTE_TERMINAL(vte_terminal_new());
 	gtk_container_add(GTK_CONTAINER(win), GTK_WIDGET(vte));
 	vte_terminal_set_font(vte, pango_font_description_from_string(font));
-	vte_terminal_set_scrollback_lines(vte, 1000000);
+	vte_terminal_set_scrollback_lines(vte, scrollback);
 
 	// Connect signals.
 	g_signal_connect(win, "delete_event", gtk_main_quit, NULL);
