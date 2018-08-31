@@ -30,7 +30,7 @@ int ini_load_color(GdkRGBA *dest, dictionary *dict, char *key)
 	return 1;
 }
 
-// Convert theme from iniparser dictionary
+// Load whole theme from iniparser dictionary
 int ini_load_theme(struct theme *theme, dictionary *dict)
 {
 	char key[48];
