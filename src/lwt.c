@@ -11,6 +11,7 @@
 #define LWT_SHELL "/bin/bash"
 #define LWT_OPACITY 1.0
 #define LWT_SCROLLBACK 1000000
+#define LWT_SPAWN_TIMEOUT -1
 
 // Theme configuration
 struct theme {
@@ -44,6 +45,7 @@ int ini_load_theme(struct theme *theme, dictionary *dict)
 	return missing;
 }
 
+void on_shell_spawn(VteTerminal *vte, GPid pid, GError *error, gpointer user_data);
 gboolean on_key_press(GtkWidget *win, GdkEventKey *event, VteTerminal *vte);
 void on_screen_change(GtkWidget *win, GdkScreen *prev, gpointer data);
 void update_visuals(GtkWidget *win);
@@ -67,6 +69,7 @@ int main(int argc, char **argv) {
 	char *shell = strdup(iniparser_getstring(dict, "lwt:shell", default_shell));
 	double opacity = iniparser_getdouble(dict, "lwt:opacity", LWT_OPACITY);
 	int scrollback = iniparser_getint(dict, "lwt:scrollback", LWT_SCROLLBACK);
+	int spawn_timeout = iniparser_getint(dict, "lwt:spawn_timeout", LWT_SPAWN_TIMEOUT);
 	if (iniparser_find_entry(dict, "color")) {
 		theme = calloc(1, sizeof(struct theme));
 		if (ini_load_theme(theme, dict)) {
@@ -111,13 +114,24 @@ int main(int argc, char **argv) {
 
 	// Fork shell process.
 	argv[0] = shell;
-	vte_terminal_spawn_sync(vte, 0, NULL, argv, NULL, 0, NULL, NULL, NULL, NULL, NULL);
+	vte_terminal_spawn_async(vte, 0, NULL, argv, NULL, 0, NULL, NULL, NULL, spawn_timeout, NULL, &on_shell_spawn, (gpointer)win);
 
-	// Show window.
-	gtk_widget_show_all(GTK_WIDGET(win));
+	// Start main loop.
 	gtk_main();
 
 	return 0;
+}
+
+// on_shell_spawn handles the spawn of the child shell process
+void on_shell_spawn(VteTerminal *vte, GPid pid, GError *error, gpointer user_data)
+{
+	GtkWindow *win = (GtkWindow*)user_data;
+	if (error) {
+		g_printerr("error spawning shell: %s\n", error->message);
+		exit(error->code);
+	}
+	// Show main window.
+	gtk_widget_show_all(GTK_WIDGET(win));
 }
 
 // on_key_press handles key-press events for the GTK window.
