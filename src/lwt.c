@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
 	if (iniparser_find_entry(dict, "color")) {
 		theme = calloc(1, sizeof(struct theme));
 		if (ini_load_theme(theme, dict)) {
-			g_printerr("Could not load complete theme; using default colors");
+			g_warning("Could not load complete theme; using default colors");
 			free(theme);
 			theme = NULL;
 		}
@@ -127,8 +127,7 @@ void on_shell_spawn(VteTerminal *vte, GPid pid, GError *error, gpointer user_dat
 {
 	GtkWindow *win = (GtkWindow*)user_data;
 	if (error) {
-		g_printerr("error spawning shell: %s\n", error->message);
-		exit(error->code);
+		g_error("error spawning shell: %s\n", error->message);
 	}
 	// Show main window.
 	gtk_widget_show_all(GTK_WIDGET(win));
