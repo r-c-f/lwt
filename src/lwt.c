@@ -19,7 +19,7 @@ struct theme {
 	GdkRGBA colors[16];
 };
 
-// Load single color from iniparser dictionary 
+// Load single color from iniparser dictionary
 int ini_load_color(GdkRGBA *dest, dictionary *dict, char *key)
 {
 	const char *val = iniparser_getstring(dict, key, NULL);
@@ -114,9 +114,15 @@ int main(int argc, char **argv) {
 
 	// Fork shell process.
 	argv[0] = shell;
+#if (VTE_MAJOR_VERSION < 1) && (VTE_MINOR_VERSION < 52)
+	//FIX for https://gitlab.gnome.org/GNOME/vte/issues/7
+	vte_terminal_spawn_sync(vte, 0, NULL, argv, NULL, 0, NULL, NULL, NULL, NULL, NULL);
+#else
+	//proper way.
 	vte_terminal_spawn_async(vte, 0, NULL, argv, NULL, 0, NULL, NULL, NULL, spawn_timeout, NULL, &on_shell_spawn, (gpointer)win);
-
-	// Start main loop.
+#endif
+	// Show main window.
+	gtk_widget_show_all(GTK_WIDGET(win));
 	gtk_main();
 
 	return 0;
@@ -125,12 +131,9 @@ int main(int argc, char **argv) {
 // on_shell_spawn handles the spawn of the child shell process
 void on_shell_spawn(VteTerminal *vte, GPid pid, GError *error, gpointer user_data)
 {
-	GtkWindow *win = (GtkWindow*)user_data;
 	if (error) {
 		g_error("error spawning shell: %s\n", error->message);
 	}
-	// Show main window.
-	gtk_widget_show_all(GTK_WIDGET(win));
 }
 
 // on_key_press handles key-press events for the GTK window.
