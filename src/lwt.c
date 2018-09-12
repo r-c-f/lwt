@@ -1,7 +1,6 @@
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 #include <vte/vte.h>
-#include "iniparser.h"
 
 // Config path.
 #define LWT_CONF ".config/lwt/lwt.conf"
@@ -19,29 +18,31 @@ struct theme {
 	GdkRGBA colors[16];
 };
 
-// Load single color from iniparser dictionary
-int ini_load_color(GdkRGBA *dest, dictionary *dict, char *key)
+// Load single color from GKeyFile
+int keyfile_load_color(GdkRGBA *dest, GKeyFile *kf, char* group, char *key)
 {
-	const char *val = iniparser_getstring(dict, key, NULL);
+	int ret = 1;
+	char *val = g_key_file_get_string(kf, group, key, NULL);
 	if (val) {
 		if (gdk_rgba_parse(dest, val)) {
-			return 0;
+			ret = 0;
 		}
 	}
-	return 1;
+	g_free(val);
+	return ret;
 }
 
-// Load whole theme from iniparser dictionary
-int ini_load_theme(struct theme *theme, dictionary *dict)
+// Load whole theme from GKeyFile configuration
+int conf_load_theme(struct theme *theme, GKeyFile *conf)
 {
-	char key[48];
+	char key[4];
 	int i, missing = 0;
 	for (i = 0; i < 16; ++i) {
-		snprintf(key, 48, "color:%d", i);
-		missing += ini_load_color(theme->colors + i, dict, key);
+		snprintf(key, 4, "%d", i);
+		missing += keyfile_load_color(theme->colors + i, conf, "color", key);
 	}
-	missing += ini_load_color(&(theme->fg), dict, "color:fg");
-	missing += ini_load_color(&(theme->bg), dict, "color:bg");
+	missing += keyfile_load_color(&(theme->fg), conf, "color", "fg");
+	missing += keyfile_load_color(&(theme->bg), conf, "color", "bg");
 	return missing;
 }
 
@@ -55,31 +56,50 @@ int main(int argc, char **argv) {
 	gtk_init(&argc, &argv);
 
 	struct theme *theme = NULL;
-
+	char *font, *shell;
+	double opacity;
+	int scrollback, spawn_timeout;
 	//get default shell
 	char *default_shell = vte_get_user_shell();
 	if (!default_shell)
 		default_shell = LWT_SHELL;
 
 	// Parse config file.
+	GError *err = NULL;
 	char conf_path[1024];
 	snprintf(conf_path, sizeof(conf_path), "%s/%s", getenv("HOME"), LWT_CONF);
-	dictionary *dict = iniparser_load(conf_path);
-	char *font = strdup(iniparser_getstring(dict, "lwt:font", LWT_FONT));
-	char *shell = strdup(iniparser_getstring(dict, "lwt:shell", default_shell));
-	double opacity = iniparser_getdouble(dict, "lwt:opacity", LWT_OPACITY);
-	int scrollback = iniparser_getint(dict, "lwt:scrollback", LWT_SCROLLBACK);
-	int spawn_timeout = iniparser_getint(dict, "lwt:spawn_timeout", LWT_SPAWN_TIMEOUT);
-	if (iniparser_find_entry(dict, "color")) {
+	GKeyFile *conf = g_key_file_new();
+	g_key_file_load_from_file(conf, conf_path, G_KEY_FILE_NONE, NULL);
+	font = g_key_file_get_string(conf, "lwt", "font", &err);
+	if (err)
+		font = LWT_FONT;
+	err = NULL;
+	shell = g_key_file_get_string(conf, "lwt", "shell", &err);
+	if (err)
+		shell = default_shell;
+	err = NULL;
+	opacity = g_key_file_get_double(conf, "lwt", "opacity", &err);
+	if (err)
+		opacity = LWT_OPACITY;
+	err = NULL;
+	scrollback = g_key_file_get_integer(conf, "lwt", "scrollback", &err);
+	if (err)
+		scrollback = LWT_SCROLLBACK;
+	err = NULL;
+	spawn_timeout = g_key_file_get_integer(conf, "lwt", "spawn_timeout", &err);
+	if (err)
+		spawn_timeout = LWT_SPAWN_TIMEOUT;	
+	err = NULL;
+	if (g_key_file_has_group(conf, "color")) {
 		theme = calloc(1, sizeof(struct theme));
-		if (ini_load_theme(theme, dict)) {
+		if (conf_load_theme(theme, conf)) {
 			g_warning("Could not load complete theme; using default colors");
 			free(theme);
 			theme = NULL;
 		}
 	}
 
-	iniparser_freedict(dict);
+	g_key_file_free(conf);
 
 	// Create window with a terminal emulator.
 	GtkWindow *win = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
