@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 #include <vte/vte.h>
