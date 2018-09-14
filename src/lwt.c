@@ -52,6 +52,7 @@ gboolean on_key_press(GtkWidget *win, GdkEventKey *event, VteTerminal *vte);
 void on_screen_change(GtkWidget *win, GdkScreen *prev, gpointer data);
 void update_visuals(GtkWidget *win);
 void clear_shell(VteTerminal *vte);
+void on_bell(VteTerminal *vte, gpointer data);
 
 int main(int argc, char **argv) {
 	gtk_init(&argc, &argv);
@@ -113,6 +114,7 @@ int main(int argc, char **argv) {
 	g_signal_connect(win, "delete_event", gtk_main_quit, NULL);
 	g_signal_connect(win, "key-press-event", G_CALLBACK(on_key_press), vte);
 	g_signal_connect(vte, "child-exited", gtk_main_quit, NULL);
+	g_signal_connect(vte, "bell", G_CALLBACK(on_bell), win);
 
 	// Enable transparency.
 	if (opacity < 1) {
@@ -220,4 +222,11 @@ void clear_shell(VteTerminal *vte) {
 	vte_terminal_reset(vte, TRUE, TRUE);
 	VtePty *pty = vte_terminal_get_pty(vte);
 	write(vte_pty_get_fd(pty), "\x0C", 1);
+}
+
+// set urgent when bell rings.
+void on_bell(VteTerminal *vte, gpointer data)
+{
+	if (!gtk_window_has_toplevel_focus(GTK_WINDOW(data)))
+		gtk_window_set_urgency_hint(GTK_WINDOW(data), TRUE);
 }
