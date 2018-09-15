@@ -40,10 +40,10 @@ int conf_load_theme(struct theme *theme, GKeyFile *conf)
 	int i, missing = 0;
 	for (i = 0; i < 16; ++i) {
 		snprintf(key, 4, "%d", i);
-		missing += keyfile_load_color(theme->colors + i, conf, "color", key);
+		missing += keyfile_load_color(theme->colors + i, conf, "theme", key);
 	}
-	missing += keyfile_load_color(&(theme->fg), conf, "color", "fg");
-	missing += keyfile_load_color(&(theme->bg), conf, "color", "bg");
+	missing += keyfile_load_color(&(theme->fg), conf, "theme", "fg");
+	missing += keyfile_load_color(&(theme->bg), conf, "theme", "bg");
 	return missing;
 }
 
@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 	if (err)
 		spawn_timeout = LWT_SPAWN_TIMEOUT;	
 	err = NULL;
-	if (g_key_file_has_group(conf, "color")) {
+	if (g_key_file_has_group(conf, "theme")) {
 		theme = calloc(1, sizeof(struct theme));
 		if (conf_load_theme(theme, conf)) {
 			g_warning("Could not load complete theme; using default colors");
