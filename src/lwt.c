@@ -16,7 +16,8 @@
 // Theme configuration
 struct theme {
 	GdkRGBA fg, bg;
-	GdkRGBA colors[16];
+	GdkRGBA colors[256];
+	size_t size;
 };
 
 // Load single color from GKeyFile
@@ -33,12 +34,27 @@ int keyfile_load_color(GdkRGBA *dest, GKeyFile *kf, char* group, char *key)
 	return ret;
 }
 
+// Set size of a theme from GKeyFile configuration
+size_t conf_theme_set_size(struct theme *theme, GKeyFile *conf)
+{
+	char *val;
+	if ((val = g_key_file_get_string(conf, "theme", "16", NULL))) {
+		theme->size = 256;
+	} else {
+		theme->size = 16;
+	}
+	g_free(val);
+	return theme->size;
+}
+
+
 // Load whole theme from GKeyFile configuration
 int conf_load_theme(struct theme *theme, GKeyFile *conf)
 {
 	char key[4];
 	int i, missing = 0;
-	for (i = 0; i < 16; ++i) {
+	conf_theme_set_size(theme, conf);
+	for (i = 0; i < theme->size; ++i) {
 		snprintf(key, 4, "%d", i);
 		missing += keyfile_load_color(theme->colors + i, conf, "theme", key);
 	}
@@ -131,7 +147,7 @@ int main(int argc, char **argv) {
 
 	//Set theme.
 	if (theme) {
-		vte_terminal_set_colors(vte, &(theme->fg), &(theme->bg), theme->colors, 16);
+		vte_terminal_set_colors(vte, &(theme->fg), &(theme->bg), theme->colors, theme->size);
 	}
 
 
