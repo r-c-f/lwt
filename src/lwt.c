@@ -64,6 +64,7 @@ int conf_load_theme(struct theme *theme, GKeyFile *conf)
 }
 
 void on_shell_spawn(VteTerminal *vte, GPid pid, GError *error, gpointer user_data);
+gboolean on_button_press(GtkWidget *win, GdkEventButton *event, VteTerminal *vte);
 gboolean on_key_press(GtkWidget *win, GdkEventKey *event, VteTerminal *vte);
 void on_screen_change(GtkWidget *win, GdkScreen *prev, gpointer data);
 void update_visuals(GtkWidget *win);
@@ -106,7 +107,7 @@ int main(int argc, char **argv) {
 	err = NULL;
 	spawn_timeout = g_key_file_get_integer(conf, "lwt", "spawn_timeout", &err);
 	if (err)
-		spawn_timeout = LWT_SPAWN_TIMEOUT;	
+		spawn_timeout = LWT_SPAWN_TIMEOUT;
 	err = NULL;
 	if (g_key_file_has_group(conf, "theme")) {
 		theme = calloc(1, sizeof(struct theme));
@@ -131,6 +132,7 @@ int main(int argc, char **argv) {
 	g_signal_connect(win, "key-press-event", G_CALLBACK(on_key_press), vte);
 	g_signal_connect(vte, "child-exited", gtk_main_quit, NULL);
 	g_signal_connect(vte, "bell", G_CALLBACK(on_bell), win);
+	g_signal_connect(vte, "button-press-event", G_CALLBACK(on_button_press), vte);
 
 	// Enable transparency.
 	if (opacity < 1) {
@@ -150,6 +152,8 @@ int main(int argc, char **argv) {
 		vte_terminal_set_colors(vte, &(theme->fg), &(theme->bg), theme->colors, theme->size);
 	}
 
+	//Allow links
+	vte_terminal_set_allow_hyperlink(vte, TRUE);
 
 	// Fork shell process.
 	argv[0] = shell;
@@ -173,6 +177,21 @@ void on_shell_spawn(VteTerminal *vte, GPid pid, GError *error, gpointer user_dat
 	if (error) {
 		g_error("error spawning shell: %s\n", error->message);
 	}
+}
+
+//handle button presses
+gboolean on_button_press(GtkWidget *win, GdkEventButton *event, VteTerminal *vte)
+{
+	GtkClipboard *cb;
+	char *link;
+	//right click -- copy marked URL
+	if (event->button == 3) {
+		if ((link = vte_terminal_hyperlink_check_event(vte, (GdkEvent*)event))) {
+			cb = gtk_clipboard_get(GDK_NONE);
+			gtk_clipboard_set_text(cb, link, -1);
+		}
+	}
+	return FALSE;
 }
 
 // on_key_press handles key-press events for the GTK window.
