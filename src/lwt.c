@@ -17,6 +17,7 @@
 struct theme {
 	GdkRGBA fg, bg;
 	GdkRGBA colors[256];
+	gboolean bold_is_bright;
 	size_t size;
 };
 
@@ -60,6 +61,7 @@ int conf_load_theme(struct theme *theme, GKeyFile *conf)
 	}
 	missing += keyfile_load_color(&(theme->fg), conf, "theme", "fg");
 	missing += keyfile_load_color(&(theme->bg), conf, "theme", "bg");
+	theme->bold_is_bright = g_key_file_get_boolean(conf, "theme", "bold_is_bright", NULL);
 	return missing;
 }
 
@@ -150,6 +152,7 @@ int main(int argc, char **argv) {
 	//Set theme.
 	if (theme) {
 		vte_terminal_set_colors(vte, &(theme->fg), &(theme->bg), theme->colors, theme->size);
+		vte_terminal_set_bold_is_bright(vte, theme->bold_is_bright);
 	}
 
 	//Allow links
