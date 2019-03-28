@@ -21,50 +21,6 @@ struct theme {
 	size_t size;
 };
 
-// Load single color from GKeyFile
-int keyfile_load_color(GdkRGBA *dest, GKeyFile *kf, char* group, char *key)
-{
-	int ret = 1;
-	char *val = g_key_file_get_string(kf, group, key, NULL);
-	if (val) {
-		if (gdk_rgba_parse(dest, val)) {
-			ret = 0;
-		}
-	}
-	g_free(val);
-	return ret;
-}
-
-// Set size of a theme from GKeyFile configuration
-size_t conf_theme_set_size(struct theme *theme, GKeyFile *conf)
-{
-	char *val;
-	if ((val = g_key_file_get_string(conf, "theme", "16", NULL))) {
-		theme->size = 256;
-	} else {
-		theme->size = 16;
-	}
-	g_free(val);
-	return theme->size;
-}
-
-
-// Load whole theme from GKeyFile configuration
-int conf_load_theme(struct theme *theme, GKeyFile *conf)
-{
-	char key[4];
-	int i, missing = 0;
-	conf_theme_set_size(theme, conf);
-	for (i = 0; i < theme->size; ++i) {
-		snprintf(key, 4, "%d", i);
-		missing += keyfile_load_color(theme->colors + i, conf, "theme", key);
-	}
-	missing += keyfile_load_color(&(theme->fg), conf, "theme", "fg");
-	missing += keyfile_load_color(&(theme->bg), conf, "theme", "bg");
-	theme->bold_is_bright = g_key_file_get_boolean(conf, "theme", "bold_is_bright", NULL);
-	return missing;
-}
-
 void on_shell_spawn(VteTerminal *vte, GPid pid, GError *error, gpointer user_data);
 gboolean on_button_press(GtkWidget *win, GdkEventButton *event, VteTerminal *vte);
 gboolean on_key_press(GtkWidget *win, GdkEventKey *event, VteTerminal *vte);
@@ -72,6 +28,9 @@ void on_screen_change(GtkWidget *win, GdkScreen *prev, gpointer data);
 void update_visuals(GtkWidget *win);
 void clear_shell(VteTerminal *vte);
 void on_bell(VteTerminal *vte, gpointer data);
+int keyfile_load_color(GdkRGBA *dest, GKeyFile *kf, char* group, char *key);
+size_t conf_theme_set_size(struct theme *theme, GKeyFile *conf);
+int conf_load_theme(struct theme *theme, GKeyFile *conf);
 
 int main(int argc, char **argv) {
 	gtk_init(&argc, &argv);
@@ -268,3 +227,43 @@ void on_bell(VteTerminal *vte, gpointer data)
 	if (!gtk_window_has_toplevel_focus(GTK_WINDOW(data)))
 		gtk_window_set_urgency_hint(GTK_WINDOW(data), TRUE);
 }
+
+// Load single color from GKeyFile
+int keyfile_load_color(GdkRGBA *dest, GKeyFile *kf, char* group, char *key)
+{
+	int ret = 1;
+	char *val = g_key_file_get_string(kf, group, key, NULL);
+	if (val && gdk_rgba_parse(dest,val)) {
+		ret = 0;
+	}
+	g_free(val);
+	return ret;
+}
+
+// Set size of a theme from GKeyFile configuration
+size_t conf_theme_set_size(struct theme *theme, GKeyFile *conf)
+{
+	char *val = g_key_file_get_string(conf, "theme", "16", NULL);
+	theme->size = val ? 256 : 16;
+	g_free(val);
+	return theme->size;
+}
+
+
+// Load whole theme from GKeyFile configuration
+int conf_load_theme(struct theme *theme, GKeyFile *conf)
+{
+	char key[4];
+	int i, missing = 0;
+	conf_theme_set_size(theme, conf);
+	for (i = 0; i < theme->size; ++i) {
+		snprintf(key, 4, "%d", i);
+		missing += keyfile_load_color(theme->colors + i, conf, "theme", key);
+	}
+	missing += keyfile_load_color(&(theme->fg), conf, "theme", "fg");
+	missing += keyfile_load_color(&(theme->bg), conf, "theme", "bg");
+	theme->bold_is_bright = g_key_file_get_boolean(conf, "theme", "bold_is_bright", NULL);
+	return missing;
+}
+
+
