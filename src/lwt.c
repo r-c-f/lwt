@@ -243,8 +243,17 @@ int keyfile_load_color(GdkRGBA *dest, GKeyFile *kf, char* group, char *key)
 // Set size of a theme from GKeyFile configuration
 size_t conf_theme_set_size(struct theme *theme, GKeyFile *conf)
 {
-	char *val = g_key_file_get_string(conf, "theme", "16", NULL);
-	theme->size = val ? 256 : 16;
+	char *val, **size;
+	char *sizes[] = {"8", "16", "232", "256", 0}; // all VTE supports.
+	for (size = sizes; *size; ++size) {
+		val = g_key_file_get_string(conf, "theme", *size, NULL);
+		if (!val) {
+			break;
+		} else {
+			g_free(val);
+		}
+	}
+	theme->size = atol(*size);
 	g_free(val);
 	return theme->size;
 }
