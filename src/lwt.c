@@ -28,6 +28,7 @@ void on_screen_change(GtkWidget *win, GdkScreen *prev, gpointer data);
 void update_visuals(GtkWidget *win);
 void clear_shell(VteTerminal *vte);
 void on_bell(VteTerminal *vte, gpointer data);
+void on_select_clipboard(VteTerminal *vte, gpointer data);
 int keyfile_load_color(GdkRGBA *dest, GKeyFile *kf, char* group, char *key);
 size_t conf_theme_set_size(struct theme *theme, GKeyFile *conf);
 int conf_load_theme(struct theme *theme, GKeyFile *conf);
@@ -39,6 +40,7 @@ int main(int argc, char **argv) {
 	char *font, *shell;
 	double opacity;
 	int scrollback, spawn_timeout;
+	gboolean select_to_clipboard;
 	//get default shell
 	char *default_shell = vte_get_user_shell();
 	if (!default_shell)
@@ -70,6 +72,10 @@ int main(int argc, char **argv) {
 	if (err)
 		spawn_timeout = LWT_SPAWN_TIMEOUT;
 	err = NULL;
+	select_to_clipboard = g_key_file_get_boolean(conf, "lwt", "select_to_clipboard", &err);
+	if (err)
+		select_to_clipboard = FALSE;
+	err = NULL;
 	if (g_key_file_has_group(conf, "theme")) {
 		theme = calloc(1, sizeof(struct theme));
 		if (conf_load_theme(theme, conf)) {
@@ -94,7 +100,8 @@ int main(int argc, char **argv) {
 	g_signal_connect(vte, "child-exited", gtk_main_quit, NULL);
 	g_signal_connect(vte, "bell", G_CALLBACK(on_bell), win);
 	g_signal_connect(vte, "button-press-event", G_CALLBACK(on_button_press), vte);
-
+	if (select_to_clipboard)
+		g_signal_connect(vte, "selection-changed", G_CALLBACK(on_select_clipboard), vte);
 	// Enable transparency.
 	if (opacity < 1) {
 		GdkScreen *screen = gdk_screen_get_default();
@@ -131,6 +138,14 @@ int main(int argc, char **argv) {
 	gtk_main();
 
 	return 0;
+}
+
+// on_select_clipboard will copy the selected text to clipboard
+void on_select_clipboard(VteTerminal *vte, gpointer data)
+{
+	if (vte_terminal_get_has_selection(vte)) {
+		vte_terminal_copy_clipboard_format(vte, VTE_FORMAT_TEXT);
+	}
 }
 
 // on_shell_spawn handles the spawn of the child shell process
